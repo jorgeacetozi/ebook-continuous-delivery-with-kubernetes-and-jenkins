@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: artifactory-deployment
+  labels:
+    app: artifactory
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: artifactory
+    spec:
+      containers:
+      - name: artifactory
+        image: jorgeacetozi/artifactory:5.4.6
+        ports:
+        - name: http-port
+          containerPort: 8081
+        volumeMounts:
+        - mountPath: /opt/artifactory/data
+          name: artifactory-volume
+        - mountPath: /opt/artifactory/access
+          name: artifactory-volume
+        - mountPath: /opt/artifactory/etc
+          name: artifactory-volume
+        - mountPath: /opt/artifactory/logs
+          name: artifactory-volume
+        - mountPath: /opt/artifactory/backup
+          name: artifactory-volume
+      volumes:
+      - name: artifactory-volume
+        emptyDir: {}
