@@ -1,0 +1,44 @@
+podTemplate(label: 'staging', 
+  containers: [
+    containerTemplate(name: 'kubectl', image: 'jorgeacetozi/kubectl:1.7.0', ttyEnabled: true, command: 'cat')
+  ],
+  envVars: [
+    secretEnvVar(key: 'DOCKERHUB_USERNAME', secretName: 'dockerhub-username-secret', secretKey: 'USERNAME')
+  ])
+{
+  node ('staging') {
+    def image_name = "notepad"
+
+    checkout scm
+
+    stage('Deploy release version to Staging environment using RollingUpdate strategy') {
+      container('kubectl') {
+        sh """
+          sed -i "s/NOTEPAD_CONTAINER_IMAGE/${DOCKERHUB_USERNAME}\\/${image_name}:${RELEASE_VERSION}/" ./notepad/k8s/staging/notepad-staging-deployment.yaml
+
+          kubectl apply -f notepad/k8s/staging/ -l app=mysql
+          sleep 20
+
+          kubectl apply -f notepad/k8s/staging/ -l app=notepad
+          kubectl rollout status deployment notepad-deployment-staging
+
+          kubectl get service notepad-service-staging
+          kubectl get endpoints notepad-service-staging
+        """
+      }
+    }
+
+    stage ('Run Acceptance Tests') {
+      build job: 'notepad-acceptance-test', parameters: [
+        [$class: 'StringParameterValue', name: 'GIT_BRANCH', value: 'master'],
+        [$class: 'StringParameterValue', name: 'NOTEPAD_URL', value: 'http://notepad-service-staging:8080']
+      ]
+    }
+
+    stage ('Run Performance Tests') {
+      build job: 'notepad-performance-test', parameters: [
+        [$class: 'StringParameterValue', name: 'NOTEPAD_URL', value: 'http://notepad-service-staging:8080']
+      ]
+    }
+  }
+}
