@@ -1,0 +1,26 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql-deployment-testing
+  labels:
+    app: mysql
+    env: testing
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+        env: testing
+    spec:
+      containers:
+      - name: mysql-testing
+        image: mysql:5.7
+        ports:
+        - name: mysql-port
+          containerPort: 3306
+        env:
+          - name: MYSQL_DATABASE
+            value: notepad
+          - name: MYSQL_ROOT_PASSWORD
+            value: root

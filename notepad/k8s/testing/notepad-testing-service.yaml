@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notepad-service-testing
+  labels:
+    app: notepad
+    env: testing
+spec:
+  selector:
+    app: notepad
+    env: testing
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: NodePort
