@@ -1,0 +1,17 @@
+podTemplate(label: 'continuous-integration',
+  containers: [
+    containerTemplate(name: 'kubectl', image: 'jorgeacetozi/kubectl:1.7.0', ttyEnabled: true, command: 'cat')
+  ])
+{
+  node ('continuous-integration') {
+    stage ('Create a testing environment for running Unit/Integration/Acceptance Tests against branch master') {
+      build job: 'notepad-testing', parameters: [[$class: 'StringParameterValue', name: 'GIT_BRANCH', value: 'master']]
+    }
+
+    stage('Destroy the previously created Testing environment') {
+      container("kubectl") {
+        sh 'kubectl delete all -l env=testing'
+      }
+    }
+  }
+}
