@@ -1,0 +1,57 @@
+podTemplate(label: 'release', 
+  containers: [
+    containerTemplate(name: 'kubectl', image: 'jorgeacetozi/kubectl:1.7.0', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'maven', image: 'jorgeacetozi/maven:3.5.0-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'docker', image: 'docker', ttyEnabled: true, command: 'cat')
+  ],
+  volumes: [
+    hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
+    secretVolume(mountPath: '/etc/maven/', secretName: 'maven-settings-secret'),
+    secretVolume(mountPath: '/home/jenkins/.ssh', secretName: 'github-private-key-secret')
+  ],
+  envVars: [
+    secretEnvVar(key: 'DOCKERHUB_USERNAME', secretName: 'dockerhub-username-secret', secretKey: 'USERNAME'),
+    secretEnvVar(key: 'DOCKERHUB_PASSWORD', secretName: 'dockerhub-password-secret', secretKey: 'PASSWORD'),
+  ])
+{
+  node ('release') {
+    def image_name = "notepad"
+
+    stage ('Create a testing environment for running Unit/Integration/Acceptance Tests against branch master') {
+      build job: 'notepad-testing', parameters: [[$class: 'StringParameterValue', name: 'GIT_BRANCH', value: 'master']]
+    }
+
+    stage('Destroy the previously created Testing environment') {
+      container("kubectl") { 
+        sh 'kubectl delete all -l env=testing'
+      }
+    }
+
+    stage('Release the new version and push the jar artifact to Artifactory') {
+      container('maven') {
+        sh """
+          mkdir -p /root/.ssh
+          cp /home/jenkins/.ssh/id_rsa /root/.ssh/id_rsa
+          chmod 400 /root/.ssh/id_rsa
+          ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
+          git clone git@github.com:jorgeacetozi/notepad.git
+          cd notepad
+          git config --global user.email "jenkins@jorgeacetozi.com"
+          git config --global user.name "Jenkins"
+          mvn -B -s /etc/maven/settings.xml release:prepare "-DreleaseVersion=${RELEASE_VERSION}" "-DdevelopmentVersion=${NEW_VERSION}" release:perform -Darguments="-DskipTests"
+        """
+      }
+    }
+
+    stage('Build and push a new Docker image with the tag based on the release version') {
+      container('docker') {
+        sh """
+          cd notepad
+          docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
+          docker build -t ${DOCKERHUB_USERNAME}/${image_name}:${RELEASE_VERSION} .
+          docker push ${DOCKERHUB_USERNAME}/${image_name}:${RELEASE_VERSION}
+        """
+      }
+    }
+  }
+}
