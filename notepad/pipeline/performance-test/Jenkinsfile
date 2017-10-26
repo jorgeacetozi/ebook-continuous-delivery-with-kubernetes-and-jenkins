@@ -1,0 +1,20 @@
+podTemplate(label: 'performance', 
+  containers: [
+    containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+  ],
+  volumes: [
+    secretVolume(mountPath: '/etc/maven/', secretName: 'maven-settings-secret')
+  ])
+{
+  node ('performance') {
+    stage('Checkout the Notepad Performance Test application') {
+      git url: 'https://github.com/jorgeacetozi/notepad-performance-test.git', branch: 'master'
+    }
+
+    stage('Run Performance Tests') {
+      container('maven') {
+        sh "mvn -B -s /etc/maven/settings.xml gatling:execute -DnotepadUrl=${NOTEPAD_URL}"
+      }
+    }
+  }
+}
