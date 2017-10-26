@@ -1,0 +1,29 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql-deployment-staging
+  labels:
+    app: mysql
+    env: staging
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+        env: staging
+    spec:
+      containers:
+      - name: mysql-staging
+        image: mysql:5.7
+        ports:
+        - name: mysql-port
+          containerPort: 3306
+        env:
+          - name: MYSQL_DATABASE
+            value: notepad
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-staging-root-password-secret
+                key: PASSWORD
