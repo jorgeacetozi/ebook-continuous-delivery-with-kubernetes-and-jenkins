@@ -1,0 +1,50 @@
+podTemplate(label: 'acceptance', 
+  containers: [
+    containerTemplate(name: 'maven-firefox', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'maven-chrome', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'selenium-hub', image: 'selenium/hub:3.4.0'),
+    containerTemplate(name: 'selenium-chrome', image: 'selenium/node-chrome:3.4.0', envVars: [
+      envVar(key: 'HUB_PORT_4444_TCP_ADDR', value: 'localhost'),
+      envVar(key: 'HUB_PORT_4444_TCP_PORT', value: '4444'),
+      envVar(key: 'DISPLAY', value: ':99.0'),
+      envVar(key: 'SE_OPTS', value: '-port 5556'),
+    ]),
+    containerTemplate(name: 'selenium-firefox', image: 'selenium/node-firefox:3.4.0', envVars: [
+      envVar(key: 'HUB_PORT_4444_TCP_ADDR', value: 'localhost'),
+      envVar(key: 'HUB_PORT_4444_TCP_PORT', value: '4444'),
+      envVar(key: 'DISPLAY', value: ':98.0'),
+      envVar(key: 'SE_OPTS', value: '-port 5557'),
+    ])
+  ],
+  volumes: [
+    secretVolume(mountPath: '/etc/maven/', secretName: 'maven-settings-secret')
+  ])
+{
+  node ('acceptance') {
+
+    stage('Checkout the Notepad application') {
+      git url: 'https://github.com/jorgeacetozi/notepad.git', branch: "${GIT_BRANCH}"
+    }
+
+    parallel (
+      firefox: {
+        stage('Run Acceptance Tests on Firefox') {
+          container('maven-firefox') {
+            sh """
+              mvn -B -s /etc/maven/settings.xml clean verify -Pacceptance-tests -Dacceptance.notepad.url=${NOTEPAD_URL} -Dselenium.browser=firefox -Dsurefire.rerunFailingTestsCount=3
+            """
+          }
+        }
+      },
+      chrome: {
+        stage('Run Acceptance Tests on Chrome') {
+          container('maven-chrome') {
+            sh """
+              mvn -B -s /etc/maven/settings.xml clean verify -Pacceptance-tests -Dacceptance.notepad.url=${NOTEPAD_URL} -Dselenium.browser=chrome -Dsurefire.rerunFailingTestsCount=3
+            """
+          }
+        }
+      }
+    )
+  }
+}
