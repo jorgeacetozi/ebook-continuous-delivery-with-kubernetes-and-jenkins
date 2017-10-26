@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service-production
+  labels:
+    app: mysql
+    env: production
+spec:
+  selector:
+    app: mysql
+    env: production
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306

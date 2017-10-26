@@ -1,0 +1,60 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: notepad-deployment-production
+  labels:
+    app: notepad
+    env: production
+    track: stable
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: notepad
+        env: production
+        track: stable
+    spec:
+      containers:
+      - name: notepad-production
+        image: NOTEPAD_CONTAINER_IMAGE
+        ports:
+        - name: http-port
+          containerPort: 8080
+        volumeMounts:
+        - name: notepad-logback-volume
+          mountPath: /etc/notepad
+        env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: production
+          - name: production_datasource_url
+            value: jdbc:mysql://mysql-service-production:3306/notepad
+          - name: production_datasource_username
+            value: root
+          - name: production_datasource_password
+            valueFrom:
+              secretKeyRef:
+                name: mysql-production-root-password-secret
+                key: PASSWORD
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 6
+          successThreshold: 1
+          timeoutSeconds: 3
+      volumes:
+      - name: notepad-logback-volume
+        configMap:
+          name: notepad-logback-production-configmap
