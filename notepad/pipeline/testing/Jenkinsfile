@@ -1,0 +1,77 @@
+podTemplate(label: 'testing', 
+  containers: [
+    containerTemplate(name: 'kubectl', image: 'jorgeacetozi/kubectl:1.7.0', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'mysql', image: 'mysql:5.7', envVars: [
+      envVar(key: 'MYSQL_DATABASE', value: 'notepad'),
+      envVar(key: 'MYSQL_ROOT_PASSWORD', value: 'root')
+    ]),
+    containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'docker', image: 'docker', ttyEnabled: true, command: 'cat')
+  ],
+  volumes: [
+    hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
+    secretVolume(mountPath: '/etc/maven/', secretName: 'maven-settings-secret')
+  ],
+  envVars: [
+    secretEnvVar(key: 'DOCKERHUB_USERNAME', secretName: 'dockerhub-username-secret', secretKey: 'USERNAME'),
+    secretEnvVar(key: 'DOCKERHUB_PASSWORD', secretName: 'dockerhub-password-secret', secretKey: 'PASSWORD'),
+  ])
+{
+  node ('testing') {
+    def image_name = "notepad"
+
+    checkout scm
+
+    dir('app') {
+      stage('Checkout the Notepad application') {
+        git url: 'https://github.com/jorgeacetozi/notepad.git', branch: "${GIT_BRANCH}"
+      }
+
+      stage('Run Unit/Integration Tests, generate the jar artifact and push it to Artifactory') {
+        container('maven') {
+          sh 'mvn -B -s /etc/maven/settings.xml clean deploy'
+        }
+      }
+
+      stage('Build and push a new Docker image with the tag based on the Git branch') {
+        container('docker') {
+          sh """
+            docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
+            docker build -t ${DOCKERHUB_USERNAME}/${image_name}:${GIT_BRANCH} .
+            docker push ${DOCKERHUB_USERNAME}/${image_name}:${GIT_BRANCH}
+          """
+        }
+      }
+    }
+
+    stage('Destroy the Testing environment if it exists') {
+      container('kubectl') {
+        sh 'kubectl delete all -l env=testing'
+      }
+    }
+
+    stage('Start a new Testing environment') {
+      container('kubectl') {
+        sh """
+          sed -i "s/NOTEPAD_CONTAINER_IMAGE/${DOCKERHUB_USERNAME}\\/${image_name}:${GIT_BRANCH}/" ./notepad/k8s/testing/notepad-testing-deployment.yaml
+
+          kubectl apply -f notepad/k8s/testing/ -l app=mysql
+          sleep 20
+
+          kubectl apply -f notepad/k8s/testing/ -l app=notepad
+          kubectl rollout status deployment notepad-deployment-testing
+
+          kubectl get service notepad-service-testing
+          kubectl get endpoints notepad-service-testing
+        """
+      }
+    }
+
+    stage ('Run Acceptance Tests') {
+      build job: 'notepad-acceptance-test', parameters: [
+        [$class: 'StringParameterValue', name: 'GIT_BRANCH', value: "${GIT_BRANCH}"],
+        [$class: 'StringParameterValue', name: 'NOTEPAD_URL', value: 'http://notepad-service-testing:8080']
+      ]
+    }
+  }
+}
