@@ -31,6 +31,8 @@ spec:
             value: root
           - name: testing_datasource_password
             value: root
+          - name: JVM_ARGS
+            value: "-Xmx256m"
         readinessProbe:
           httpGet:
             path: /health

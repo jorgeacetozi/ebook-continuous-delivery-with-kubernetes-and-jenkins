@@ -34,6 +34,8 @@ spec:
               secretKeyRef:
                 name: mysql-staging-root-password-secret
                 key: PASSWORD
+          - name: JVM_ARGS
+            value: "-Xmx256m"
         readinessProbe:
           httpGet:
             path: /health
