@@ -1,22 +1,39 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: artifactory-deployment
+  creationTimestamp: null
   labels:
     app: artifactory
+  name: artifactory-deployment
 spec:
+  progressDeadlineSeconds: 2147483647
   replicas: 1
+  revisionHistoryLimit: 2147483647
+  selector:
+    matchLabels:
+      app: artifactory
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app: artifactory
     spec:
       containers:
-      - name: artifactory
-        image: jorgeacetozi/artifactory:5.4.6
+      - image: jorgeacetozi/artifactory:5.4.6
+        imagePullPolicy: IfNotPresent
+        name: artifactory
         ports:
-        - name: http-port
-          containerPort: 8081
+        - containerPort: 8081
+          name: http-port
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /opt/artifactory/data
           name: artifactory-volume
@@ -28,6 +45,12 @@ spec:
           name: artifactory-volume
         - mountPath: /opt/artifactory/backup
           name: artifactory-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
       volumes:
-      - name: artifactory-volume
-        emptyDir: {}
+      - emptyDir: {}
+        name: artifactory-volume
+status: {}
