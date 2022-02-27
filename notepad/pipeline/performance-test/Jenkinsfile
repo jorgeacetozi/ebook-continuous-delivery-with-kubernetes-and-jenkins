@@ -8,7 +8,7 @@ podTemplate(label: 'performance',
 {
   node ('performance') {
     stage('Checkout the Notepad Performance Test application') {
-      git url: 'https://github.com/jorgeacetozi/notepad-performance-test.git', branch: 'master'
+      git url: 'https://github.com/snr71/notepad-performance-test.git', branch: 'master'
     }
 
     stage('Run Performance Tests') {

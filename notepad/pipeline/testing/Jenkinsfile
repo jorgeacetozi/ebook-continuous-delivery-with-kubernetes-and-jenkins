@@ -24,7 +24,7 @@ podTemplate(label: 'testing',
 
     dir('app') {
       stage('Checkout the Notepad application') {
-        git url: 'https://github.com/jorgeacetozi/notepad.git', branch: "${GIT_BRANCH}"
+        git url: 'https://github.com/snr71/notepad.git', branch: "${GIT_BRANCH}"
       }
 
       stage('Run Unit/Integration Tests, generate the jar artifact and push it to Artifactory') {

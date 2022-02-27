@@ -34,9 +34,9 @@ podTemplate(label: 'release',
           cp /home/jenkins/.ssh/id_rsa /root/.ssh/id_rsa
           chmod 400 /root/.ssh/id_rsa
           ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
-          git clone git@github.com:jorgeacetozi/notepad.git
+          git clone git@github.com:snr71/notepad.git
           cd notepad
-          git config --global user.email "jenkins@jorgeacetozi.com"
+          git config --global user.email "jenkins@snr71.com"
           git config --global user.name "Jenkins"
           mvn -B -s /etc/maven/settings.xml release:prepare "-DreleaseVersion=${RELEASE_VERSION}" "-DdevelopmentVersion=${NEW_VERSION}" release:perform -Darguments="-DskipTests"
         """

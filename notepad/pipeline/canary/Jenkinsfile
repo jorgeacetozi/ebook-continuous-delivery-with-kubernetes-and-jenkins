@@ -45,7 +45,7 @@ podTemplate(label: 'canary',
 
     dir('app') {
       stage('Checkout the Notepad application') {
-        git url: 'https://github.com/jorgeacetozi/notepad.git', branch: 'master'
+        git url: 'https://github.com/snr71/notepad.git', branch: 'master'
       }
 
       parallel (

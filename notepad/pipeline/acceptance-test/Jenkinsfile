@@ -23,7 +23,7 @@ podTemplate(label: 'acceptance',
   node ('acceptance') {
 
     stage('Checkout the Notepad application') {
-      git url: 'https://github.com/jorgeacetozi/notepad.git', branch: "${GIT_BRANCH}"
+      git url: 'https://github.com/snr71/notepad.git', branch: "${GIT_BRANCH}"
     }
 
     parallel (
