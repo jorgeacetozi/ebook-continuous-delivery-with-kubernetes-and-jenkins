@@ -23,7 +23,7 @@ podTemplate(label: 'testing',
     checkout scm
 
     dir('app') {
-      stage('Checkout the Notepad application') {
+      stage('Checkout the Notepad Application') {
         git url: 'https://github.com/snr71/notepad.git', branch: "${GIT_BRANCH}"
       }
 
